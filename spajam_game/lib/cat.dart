@@ -1,5 +1,6 @@
 import 'dart:math'; // sin関数を使うために必要
 import 'package:flame/components.dart';
+import 'package:flutter/painting.dart';
 
 // --- 猫の各パーツを管理するクラス ---
 class CatPart extends SpriteComponent {
@@ -30,8 +31,18 @@ class CatPart extends SpriteComponent {
 // --- CatPartを3つ連結する親クラス ---
 class Cat extends PositionComponent {
   final String color;
+  Cat({required this.color, required Vector2 position}) {
+    this.position = position;
+    size = Vector2(60, 60);
+  }
 
-  Cat({required this.color, required super.position});
+  final _paint = Paint()..color = const Color(0xFFFFC107);
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+    canvas.drawRect(size.toRect(), _paint);
+  }
 
   @override
   Future<void> onLoad() async {

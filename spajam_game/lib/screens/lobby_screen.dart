@@ -1,8 +1,4 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../state/game_state.dart';
-import 'menu_screen.dart';
 
 class LobbyScreen extends StatelessWidget {
   static const routeName = '/lobby';
@@ -13,11 +9,8 @@ class LobbyScreen extends StatelessWidget {
     return Scaffold(
       body: Stack(
         children: [
-          // 背景 (必要なら Menu の _FusumaDoors を流用してもOK)
           const _LobbyBackground(),
-          // うっすら紙吹雪 (控えめ)
           const _LobbyConfettiLayer(),
-          // メイン
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
@@ -34,7 +27,6 @@ class LobbyScreen extends StatelessWidget {
                         children: [
                           _label('参加メンバー'),
                           const SizedBox(height: 8),
-                          // TODO: ここにプレイヤーリストを並べる (例)
                           _fakeMember('あなた', accent: true),
                           _fakeMember('Player 2'),
                           _fakeMember('Player 3', waiting: true),
@@ -56,7 +48,7 @@ class LobbyScreen extends StatelessWidget {
                                 ),
                               ),
                               onPressed: () {
-                                // TODO: スタート処理
+                                Navigator.pushNamed(context, '/game');
                               },
                               child: const Text(
                                 'スタート',
@@ -91,7 +83,7 @@ class LobbyScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: accent
             ? const Color(0xFF3D2A1C)
-            : const Color(0xFF3D2A1C).withOpacity(0.65),
+            : const Color(0xFF3D2A1C).withValues(alpha: 0.65),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: accent ? const Color(0xFFF2D49A) : const Color(0xFF9E7B52),
@@ -110,7 +102,7 @@ class LobbyScreen extends StatelessWidget {
               child: Text(
                 waiting ? '$name (待機)' : name,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(waiting ? 0.75 : 0.95),
+                  color: Colors.white.withValues(alpha: waiting ? 0.75 : 0.95),
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1,
                   shadows: const [
@@ -180,12 +172,12 @@ class _LobbyPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 28),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5E9DA).withOpacity(0.95),
+        color: const Color(0xFFF5E9DA).withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: const Color(0xFFD3B48A), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.20),
+            color: Colors.black.withValues(alpha: 0.20),
             blurRadius: 18,
             offset: const Offset(0, 6),
           )
@@ -223,7 +215,7 @@ class _InfoBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: bg.withOpacity(0.85),
+        color: bg.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: border, width: 1.2),
       ),

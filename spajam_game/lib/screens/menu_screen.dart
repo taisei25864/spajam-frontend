@@ -365,37 +365,6 @@ class _FusumaPanelPainter extends CustomPainter {
       oldDelegate.showHandle != showHandle;
 }
 
-/// 中央合わせ目の落ち影
-class _CenterSeamShadow extends CustomPainter {
-  final double openProgress;
-  _CenterSeamShadow({required this.openProgress});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final gap = 6.0 + openProgress * size.width * 0.5;
-    // 閉時は細い影、開くほど薄く
-    final alpha = (1 - openProgress).clamp(0.0, 1.0);
-    final shadowPaint = Paint()
-      ..shader = LinearGradient(
-        colors: [
-          Colors.black.withOpacity(0.18 * alpha),
-          Colors.black.withOpacity(0.04 * alpha),
-          Colors.black.withOpacity(0.18 * alpha),
-        ],
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-      ).createShader(Rect.fromLTWH(size.width / 2 - gap / 2 - 40, 0, gap + 80, size.height));
-    canvas.drawRect(
-      Rect.fromLTWH(size.width / 2 - gap / 2 - 40, 0, gap + 80, size.height),
-      shadowPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _CenterSeamShadow oldDelegate) =>
-      oldDelegate.openProgress != openProgress;
-}
-
 /// 入力パネル・木札 / テキストフィールド / ボタンは以前のまま
 class _InputPanel extends StatelessWidget {
   final Widget child;
