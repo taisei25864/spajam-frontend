@@ -1,32 +1,31 @@
-import 'package:flame/components.dart';
-import 'package:flame/game.dart';
-import 'package:flutter/material.dart'; // 色を指定するために必要
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'state/game_state.dart';
+import 'screens/menu_screen.dart';
+import 'screens/lobby_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
-  final game = MyGame();
-  runApp(GameWidget(game: game));
+  runApp(const SpanyanApp());
 }
 
-class MyGame extends FlameGame {
-  // ゲームのロード時に一度だけ呼ばれるメソッド
+class SpanyanApp extends StatelessWidget {
+  const SpanyanApp({super.key});
+
   @override
-  Future<void> onLoad() async {
-    await super.onLoad(); // 必須
-
-    // TextComponent を作成
-    final style = TextStyle(
-      color: Colors.white, // 文字の色
-      fontSize: 48.0,      // 文字のサイズ
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => GameState(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'ハモってGO！',
+        theme: AppTheme.build(),
+        initialRoute: MenuScreen.routeName,
+        routes: {
+          MenuScreen.routeName: (_) => const MenuScreen(),
+          LobbyScreen.routeName: (_) => const LobbyScreen(),
+        },
+      ),
     );
-    final textRenderer = TextPaint(style: style);
-
-    final myText = TextComponent(
-      text: 'Hello, Flame!', // 表示したい文字列
-      textRenderer: textRenderer,
-      position: Vector2(50, 100), // 表示する位置 (x, y)
-    );
-
-    // 作成したコンポーネントをゲームに追加
-    add(myText);
   }
 }
