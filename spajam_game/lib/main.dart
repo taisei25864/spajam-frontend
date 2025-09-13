@@ -1,6 +1,6 @@
-import 'package:flame/components.dart';
 import 'package:flame/game.dart';
-import 'package:flutter/material.dart'; // 色を指定するために必要
+import 'package:flutter/widgets.dart';
+import 'cat.dart'; // 作成した cat.dart ファイルを読み込む
 
 void main() {
   final game = MyGame();
@@ -8,25 +8,9 @@ void main() {
 }
 
 class MyGame extends FlameGame {
-  // ゲームのロード時に一度だけ呼ばれるメソッド
   @override
   Future<void> onLoad() async {
-    await super.onLoad(); // 必須
-
-    // TextComponent を作成
-    final style = TextStyle(
-      color: Colors.white, // 文字の色
-      fontSize: 48.0,      // 文字のサイズ
-    );
-    final textRenderer = TextPaint(style: style);
-
-    final myText = TextComponent(
-      text: 'Hello, Flame!', // 表示したい文字列
-      textRenderer: textRenderer,
-      position: Vector2(50, 100), // 表示する位置 (x, y)
-    );
-
-    // 作成したコンポーネントをゲームに追加
-    add(myText);
+    // 青い猫を (x: 50, y: 150) の位置に1匹だけ表示
+    add(Cat(color: 'blue', position: Vector2(10, 150)));
   }
 }
