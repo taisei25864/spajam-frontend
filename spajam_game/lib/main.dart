@@ -1,4 +1,4 @@
-import 'dart:math'; // Randomを使うために必要
+import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
@@ -23,12 +23,20 @@ class MyGame extends FlameGame {
   final double gracePeriod = 5.0;
   double _time = 0;
 
-  // ★★★ 追加: プレイヤーが操作する猫のインデックス (0, 1, or 2) ★★★
   late final int playerIndex;
 
   @override
   Future<void> onLoad() async {
-    // ★★★ 追加: ゲーム開始時にプレイヤーの位置をランダムに決定 ★★★
+    // ★★★ ここからが追加部分 ★★★
+    // 背景画像用のコンポーネントを作成
+    final background = SpriteComponent()
+      ..sprite = await Sprite.load('background.png') // 画像ファイル名を指定
+      ..size = size // 画面全体に広げる
+      ..position = Vector2.zero()
+      ..priority = -1; // 描画の優先度を一番低くして、常に最背面に表示
+    await add(background);
+    // ★★★ ここまでが追加部分 ★★★
+
     playerIndex = Random().nextInt(targetValues.length);
 
     screenFlash = RectangleComponent(
@@ -38,6 +46,7 @@ class MyGame extends FlameGame {
     );
     await add(screenFlash);
 
+    // (以下、変更なし)
     final screenWidth = size.x;
     final catAreaWidth = screenWidth * 0.7;
     final spacing = catAreaWidth / (targetValues.length + 1);
@@ -50,7 +59,6 @@ class MyGame extends FlameGame {
     final zoneHeight = lowerLimit - upperLimit;
 
     final playerZoneBackground = RectangleComponent(
-      // ★★★ 修正: プレイヤーのX座標に合わせて背景を配置 ★★★
       position: Vector2(spacing * (playerIndex + 1), upperLimit + zoneHeight / 2),
       size: Vector2(catAreaWidth / (targetValues.length + 1), zoneHeight),
       anchor: Anchor.center,
@@ -77,7 +85,6 @@ class MyGame extends FlameGame {
     inputBar.position = Vector2(screenWidth - 10, size.y / 2);
     await add(inputBar);
 
-    // ★★★ 修正: ランダムに選ばれた猫をプレイヤーとして設定 ★★★
     catContainers[playerIndex].setAsPlayer(inputBar.barColor);
     inputBar.setTarget(targetValues[playerIndex]);
 
@@ -113,7 +120,6 @@ class MyGame extends FlameGame {
     inputBar.updateValue(myInputValue);
 
     if (_time > gracePeriod) {
-      // ★★★ 修正: プレイヤーの目標値を使って範囲チェック ★★★
       final isOutOfRange = (myInputValue - targetValues[playerIndex]).abs() > 0.5;
       if (isOutOfRange) {
         final opacity = (sin(_time * 8) + 1) / 2;

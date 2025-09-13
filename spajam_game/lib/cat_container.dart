@@ -48,12 +48,12 @@ class CatContainer extends PositionComponent with HasGameReference {
     y = (game.size.y / 2) - (difference * verticalScale);
 
     // ★★★ ここからが修正部分 ★★★
-    // 上下の余白を設定
-    final margin = 150.0;
+    // 上下の余白をさらに大きくして、移動範囲を狭める
+    final margin = 250.0; // 170.0 から 250.0 に変更
 
-    // 上限値と下限値にマージンを適用
+    // 上限値と下限値の計算式をシンプルで確実な形に修正
     final upperLimit = (size.y / 2) + margin;
-    final lowerLimit = game.size.y - (size.y / 2) + margin - 25;
+    final lowerLimit = game.size.y - (size.y / 2) - margin;
 
     y = y.clamp(upperLimit, lowerLimit);
     // ★★★ ここまでが修正部分 ★★★
