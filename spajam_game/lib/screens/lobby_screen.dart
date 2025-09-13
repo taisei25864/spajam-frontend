@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../services/webrtc_service.dart';
+import 'game_screen.dart'; // ルート名利用したい場合
 
 class LobbyScreen extends StatelessWidget {
   static const routeName = '/lobby';
@@ -47,8 +51,41 @@ class LobbyScreen extends StatelessWidget {
                                   side: const BorderSide(color: Color(0xFFF2D49A), width: 2),
                                 ),
                               ),
-                              onPressed: () {
-                                Navigator.pushNamed(context, '/game');
+                              onPressed: () async {
+                                // マイク権限
+                                final status = await Permission.microphone.request();
+                                if (!status.isGranted) {
+                                  debugPrint('Microphone permission denied');
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('マイク権限が必要です')),
+                                    );
+                                  }
+                                  return;
+                                }
+
+                                final webrtc = context.read<WebRTCService>();
+                                if (!webrtc.isConnected) {
+                                  try {
+                                    await webrtc.init(sendSignal: (json) async {
+                                      debugPrint('SEND SIGNAL -> $json');
+                                    });
+                                    await webrtc.createOffer((json) async {
+                                      debugPrint('SEND SIGNAL -> $json');
+                                    });
+                                  } catch (e) {
+                                    debugPrint('WebRTC init error: $e');
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('音声初期化に失敗しました')),
+                                      );
+                                    }
+                                    return;
+                                  }
+                                }
+                                if (context.mounted) {
+                                  Navigator.pushNamed(context, GameScreen.routeName);
+                                }
                               },
                               child: const Text(
                                 'スタート',
@@ -63,6 +100,7 @@ class LobbyScreen extends StatelessWidget {
                               ),
                             ),
                           ),
+                          const SizedBox(height: 24),
                         ],
                       ),
                     ),
@@ -83,7 +121,7 @@ class LobbyScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: accent
             ? const Color(0xFF3D2A1C)
-            : const Color(0xFF3D2A1C).withValues(alpha: 0.65),
+            : const Color(0xFF3D2A1C).withOpacity(0.65),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: accent ? const Color(0xFFF2D49A) : const Color(0xFF9E7B52),
@@ -102,7 +140,7 @@ class LobbyScreen extends StatelessWidget {
               child: Text(
                 waiting ? '$name (待機)' : name,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: waiting ? 0.75 : 0.95),
+                  color: Colors.white.withOpacity(waiting ? 0.75 : 0.95),
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1,
                   shadows: const [
@@ -172,12 +210,12 @@ class _LobbyPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 28),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5E9DA).withValues(alpha: 0.95),
+        color: const Color(0xFFF5E9DA).withOpacity(0.95),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: const Color(0xFFD3B48A), width: 1.2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.20),
+            color: Colors.black.withOpacity(0.20),
             blurRadius: 18,
             offset: const Offset(0, 6),
           )
@@ -215,7 +253,7 @@ class _InfoBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: bg.withValues(alpha: 0.85),
+        color: bg.withOpacity(0.85),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: border, width: 1.2),
       ),
