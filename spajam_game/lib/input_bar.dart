@@ -1,29 +1,33 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
-// ★★★ ここを修正 ★★★
 class InputBar extends PositionComponent with HasGameReference {
   late final RectangleComponent valueBar;
   late final TextComponent targetValueText;
   final Color barColor = Colors.cyan;
+
+  // 猫の画像の高さを外部から受け取る
+  final double displayHeight;
+
+  InputBar({required this.displayHeight});
 
   double targetValue = 0;
 
   @override
   Future<void> onLoad() async {
     final barWidth = 50.0;
-    size = Vector2(barWidth + 20, game.size.y);
-    position.x = game.size.x;
-    anchor = Anchor.topRight;
+    // 受け取った高さを使う
+    size = Vector2(barWidth + 20, displayHeight);
+    anchor = Anchor.centerRight; // アンカーを中央右に
 
     final background = RectangleComponent(
-      size: Vector2(barWidth, game.size.y),
+      size: Vector2(barWidth, displayHeight),
       paint: Paint()..color = Colors.grey.shade800,
     );
     await add(background);
 
     valueBar = RectangleComponent(
-      position: Vector2(0, game.size.y),
+      position: Vector2(0, displayHeight),
       size: Vector2(barWidth, 0),
       paint: Paint()..color = barColor,
       anchor: Anchor.bottomLeft,
@@ -31,7 +35,7 @@ class InputBar extends PositionComponent with HasGameReference {
     await add(valueBar);
 
     for (int i = 0; i <= 10; i++) {
-      final tickPosition = game.size.y * (i / 10.0);
+      final tickPosition = displayHeight * (i / 10.0);
       final tick = RectangleComponent(
         position: Vector2(barWidth, tickPosition),
         size: Vector2(10, 2),
@@ -52,7 +56,7 @@ class InputBar extends PositionComponent with HasGameReference {
 
   void updateValue(double currentValue) {
     final normalizedValue = (currentValue / 100.0).clamp(0.0, 1.0);
-    valueBar.size.y = game.size.y * normalizedValue;
+    valueBar.size.y = displayHeight * normalizedValue;
   }
 
   void setTarget(double newTarget) {
