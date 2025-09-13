@@ -7,26 +7,31 @@ void main() {
   runApp(GameWidget(game: game));
 }
 
-class MyGame extends FlameGame {
-  // ゲームのロード時に一度だけ呼ばれるメソッド
+// 四角形オブジェクトのためのクラス
+class Player extends PositionComponent {
+  // Paint オブジェクトをここで定義しておくと効率的です
+  final paint = Paint()..color = Colors.blue;
+
+  // このコンポーネントがゲームに追加されるときに一度だけ呼ばれます
   @override
   Future<void> onLoad() async {
-    await super.onLoad(); // 必須
+    // コンポーネントのサイズと位置を設定します
+    size = Vector2(50, 50);       // 幅50, 高さ50の正方形
+    position = Vector2(100, 100); // 画面の(x:100, y:100)の位置
+  }
 
-    // TextComponent を作成
-    final style = TextStyle(
-      color: Colors.white, // 文字の色
-      fontSize: 48.0,      // 文字のサイズ
-    );
-    final textRenderer = TextPaint(style: style);
+  // 描画を行うメソッド。毎フレーム呼ばれます。
+  @override
+  void render(Canvas canvas) {
+    // 設定したサイズで四角形を描画します
+    canvas.drawRect(size.toRect(), paint);
+  }
+}
 
-    final myText = TextComponent(
-      text: 'Hello, Flame!', // 表示したい文字列
-      textRenderer: textRenderer,
-      position: Vector2(50, 100), // 表示する位置 (x, y)
-    );
-
-    // 作成したコンポーネントをゲームに追加
-    add(myText);
+class MyGame extends FlameGame {
+  @override
+  Future<void> onLoad() async {
+    // Playerクラスのインスタンスを作成してゲームに追加します
+    add(Player());
   }
 }
