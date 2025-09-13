@@ -19,8 +19,8 @@ class MyGame extends FlameGame {
   final targetValues = [13.0, 18.0, 20.0];
   final double maxInputValue = 30.0;
 
-  final double gameDuration = 60.0;
-  final double gracePeriod = 5.0;
+  final double gameDuration = 20.0;
+  final double gracePeriod = 15.0;
   double _time = 0;
 
   late final int playerIndex;
