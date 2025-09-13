@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 
 import '../game/my_game.dart';
-import 'menu_screen.dart'; // MenuScreenをインポート
+import 'menu_screen.dart';
 
 class GameScreen extends StatefulWidget {
   static const routeName = '/game';
@@ -13,29 +13,32 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  late final MyGame _game;
-
-  @override
-  void initState() {
-    super.initState();
-    _game = MyGame(
-      onExit: () {
-        if (!mounted) return;
-        // 終了ボタンが押されたらタイトル画面(MenuScreen)に戻る
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          MenuScreen.routeName,
-              (route) => false,
-        );
-      },
-    );
-  }
+  // Keyを使ってゲームウィジェットを再生成できるようにする
+  Key _gameWidgetKey = UniqueKey();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: GameWidget(
-        game: _game,
-        // ゲームオーバー時に表示するUIをここで定義
+        key: _gameWidgetKey,
+        game: MyGame(
+          // 終了ボタンが押されたときの処理
+          onExit: () {
+            if (!mounted) return;
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              MenuScreen.routeName,
+                  (route) => false,
+            );
+          },
+          // ステージクリア時に呼ばれる処理
+          onStageClear: () {
+            setState(() {
+              // Keyを変更してGameWidgetを再生成し、次のステージに進む
+              _gameWidgetKey = UniqueKey();
+            });
+          },
+        ),
+        // ゲームオーバー時に表示するUI
         overlayBuilderMap: {
           'gameOver': (context, game) {
             final myGame = game as MyGame;
@@ -55,7 +58,13 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton(
-                      onPressed: myGame.restartGame,
+                      // リスタートボタンが押されたら、Keyを変更して再生成
+                      onPressed: () {
+                        setState(() {
+                          myGame.resetStage(); // ステージ番号をリセット
+                          _gameWidgetKey = UniqueKey();
+                        });
+                      },
                       child: const Text('リスタート'),
                     ),
                     const SizedBox(height: 12),

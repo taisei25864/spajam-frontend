@@ -40,24 +40,26 @@ class CatContainer extends PositionComponent with HasGameReference {
     await add(background);
     await add(catImage);
   }
-
   void updateState(double currentValue) {
+    // 現在の入力値と目標値との差を計算
     final difference = currentValue - targetValue;
-    final verticalScale = (game.size.y / 2) / (maxInputValue / 2);
 
+    // 差を画面上のピクセル移動量に変換する係数
+    // この値を大きくすると、少しの差で大きく動く
+    final verticalScale = 15.0;
+
+    // ★★★ 修正: 画面中央を基準に、差の分だけY座標をずらす ★★★
+    // Y軸は下が正なので、差に-1を掛けて直感的な動きにする
     y = (game.size.y / 2) - (difference * verticalScale);
 
-    // ★★★ ここからが修正部分 ★★★
-    // 上下の余白をさらに大きくして、移動範囲を狭める
-    final margin = 170.0; // 170.0 から 250.0 に変更
-
-    // 上限値と下限値の計算式をシンプルで確実な形に修正
+    // 上下の移動範囲の制限
+    final margin = 20.0;
     final upperLimit = (size.y / 2) + margin;
-    final lowerLimit = game.size.y - (size.y / 1.2) + margin;
-
+    final lowerLimit = game.size.y - (size.y / 2) - margin;
     y = y.clamp(upperLimit, lowerLimit);
-    // ★★★ ここまでが修正部分 ★★★
   }
+
+// ...
 
   void setAsPlayer(Color color) {
     background.paint.color = color.withAlpha(77);

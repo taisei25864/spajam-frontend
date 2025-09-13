@@ -1,52 +1,64 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flame/components.dart';
+import 'package:flame/effects.dart';
 import 'package:flame/game.dart';
-import 'package:flame/input.dart';
+import 'package:flame/particles.dart';
 import 'package:flutter/material.dart';
 
+// ユーザー指定のインポートパス
 import '../cat_container.dart';
 import '../input_bar.dart';
 
 enum GameState { playing, stageClear, gameOver }
 
 class MyGame extends FlameGame {
-  // --- コンポーネント ---
   final catContainers = <CatContainer>[];
   late final InputBar inputBar;
   late final RectangleComponent screenFlash;
   late final TextComponent timerText;
-  // ★★★ UIコンポーネントを late ではなく Optional に変更 ★★★
-  SpriteButtonComponent? restartButton;
-  SpriteButtonComponent? exitButton;
 
-  // --- 設定値 ---
   final List<List<double>> stageTargetValues = [
-    [13.0, 18.0, 20.0], [5.0, 15.0, 25.0], [10.0, 15.0, 20.0],
+    [13.0, 18.0, 20.0],
+    [5.0, 15.0, 25.0],
+    [10.0, 15.0, 20.0],
   ];
   late List<double> currentTargetValues;
   final double maxInputValue = 30.0;
   final double gameDuration = 20.0;
   final double gracePeriod = 5.0;
 
-  // --- 状態変数 ---
   double _time = 0;
   late int playerIndex;
   GameState _gameState = GameState.playing;
   double _timeInRange = 0.0;
   int _stage = 0;
+  late String randomColorKey;
 
-  // --- Flutter側から渡されるコールバック ---
+  List<double> playerInputs = [0.0, 0.0, 0.0];
+
   final VoidCallback onExit;
-  MyGame({required this.onExit});
+  final VoidCallback onStageClear;
 
-  // ★★★ 猫のファイル名をグループ化 ★★★
+  MyGame({
+    required this.onExit,
+    required this.onStageClear,
+  });
+
   final Map<String, List<String>> catGroups = {
     'blue': ['blue_cat_1.png', 'blue_cat_2.png', 'blue_cat_3.png'],
     'normal': ['normal_cat_1.png', 'normal_cat_2.png', 'normal_cat_3.png'],
     'yellow': ['yellow_cat_1.png', 'yellow_cat_2.png', 'yellow_cat_3.png'],
     'purple': ['purple_cat_1.png', 'purple_cat_2.png', 'purple_cat_3.png'],
     'green': ['green_cat_1.png', 'green_cat_2.png', 'green_cat_3.png'],
+  };
+
+  final Map<String, String> combinedCatImages = {
+    'blue': 'blue_cat.png',
+    'normal': 'normal_cat.png',
+    'yellow': 'yellow_cat.png',
+    'purple': 'purple_cat.png',
+    'green': 'green_cat.png',
   };
 
   @override
@@ -64,12 +76,6 @@ class MyGame extends FlameGame {
 
     currentTargetValues = stageTargetValues[_stage % stageTargetValues.length];
 
-    // --- UI要素の準備 ---
-    await _setupUI();
-  }
-
-  // ★★★ UI要素のセットアップを別メソッドに分離 ★★★
-  Future<void> _setupUI() async {
     final background = SpriteComponent()
       ..sprite = await Sprite.load('background.png')
       ..size = size ..position = Vector2.zero() ..priority = -1;
@@ -93,9 +99,8 @@ class MyGame extends FlameGame {
     );
     await add(playerZoneBackground);
 
-    // ★★★ ランダムな色の猫を順番に選択するロジック ★★★
     final colorKeys = catGroups.keys.toList();
-    final randomColorKey = colorKeys[Random().nextInt(colorKeys.length)];
+    randomColorKey = colorKeys[Random().nextInt(colorKeys.length)];
     final selectedCatFiles = catGroups[randomColorKey]!;
 
     for (var i = 0; i < currentTargetValues.length; i++) {
@@ -124,17 +129,12 @@ class MyGame extends FlameGame {
       priority: 11,
     );
     await add(timerText);
+  }
 
-    restartButton = SpriteButtonComponent(
-      button: await Sprite.load('restart_button.png'),
-      size: Vector2(200, 100), position: Vector2(size.x / 2, size.y / 2 - 60),
-      anchor: Anchor.center, onPressed: restartGame, priority: 12,
-    );
-    exitButton = SpriteButtonComponent(
-      button: await Sprite.load('exit_button.png'),
-      size: Vector2(200, 100), position: Vector2(size.x / 2, size.y / 2 + 60),
-      anchor: Anchor.center, onPressed: exitToMenu, priority: 12,
-    );
+  void updatePlayerInput(int index, double value) {
+    if (index >= 0 && index < playerInputs.length) {
+      playerInputs[index] = value;
+    }
   }
 
   @override
@@ -148,36 +148,42 @@ class MyGame extends FlameGame {
   void _updatePlaying(double dt) {
     _time += dt;
     final remainingTime = gameDuration - _time;
-
     if (remainingTime <= 0) {
-      timerText.text = 'Time: 0.0';
       _gameState = GameState.gameOver;
-      _showGameOverUI();
+      overlays.add('gameOver');
       return;
     }
     timerText.text = 'Time: ${remainingTime.toStringAsFixed(1)}';
 
     if (catContainers.isEmpty) return;
 
-    final myInputValue = ((sin(_time * 1.0) + 1) / 2) * maxInputValue;
-    final otherPlayerValue1 = ((sin(_time * 1.3 + 1) + 1) / 2) * maxInputValue;
-    final otherPlayerValue2 = ((sin(_time * 1.6 + 2) + 1) / 2) * maxInputValue;
+    // ★★★ ステージクリア確認用：目標値を直接入力値に設定 ★★★
+    for (var i = 0; i < currentTargetValues.length; i++) {
+      updatePlayerInput(i, currentTargetValues[i]);
+    }
 
-    catContainers[0].updateState(myInputValue);
-    catContainers[1].updateState(otherPlayerValue1);
-    catContainers[2].updateState(otherPlayerValue2);
-    inputBar.updateValue(myInputValue);
+    for (var i = 0; i < catContainers.length; i++) {
+      catContainers[i].updateState(playerInputs[i]);
+    }
+    inputBar.updateValue(playerInputs[playerIndex]);
 
-    final isOutOfRange = (myInputValue - currentTargetValues[playerIndex]).abs() > 5.0;
-
-    if (_time > gracePeriod && isOutOfRange) {
+    final isPlayerOutOfRange = (playerInputs[playerIndex] - currentTargetValues[playerIndex]).abs() > 0.5;
+    if (_time > gracePeriod && isPlayerOutOfRange) {
       final opacity = (sin(_time * 8) + 1) / 2;
       screenFlash.paint.color = Colors.red.withAlpha((opacity * 64).round());
     } else {
       screenFlash.paint.color = Colors.transparent;
     }
 
-    if (!isOutOfRange) {
+    bool allPlayersInRange = true;
+    for (var i = 0; i < playerInputs.length; i++) {
+      if ((playerInputs[i] - currentTargetValues[i]).abs() > 0.5) {
+        allPlayersInRange = false;
+        break;
+      }
+    }
+
+    if (allPlayersInRange) {
       _timeInRange += dt;
       if (_timeInRange >= 2.0) {
         _gameState = GameState.stageClear;
@@ -188,13 +194,10 @@ class MyGame extends FlameGame {
     }
   }
 
-  void _showGameOverUI() {
-    if (restartButton != null) add(restartButton!);
-    if (exitButton != null) add(exitButton!);
-  }
-
   Future<void> _goToNextStage() async {
     _stage++;
+    _gameState = GameState.stageClear;
+
     final clearText = TextComponent(
       text: 'STAGE CLEAR!',
       position: size / 2, anchor: Anchor.center,
@@ -203,13 +206,52 @@ class MyGame extends FlameGame {
     );
     add(clearText);
 
+    if (catContainers.length < 3) return;
+
+    final animatorCat = catContainers[1];
+
+    catContainers[0].removeFromParent();
+    catContainers[2].removeFromParent();
+    inputBar.removeFromParent();
+
+    final combinedImageFile = combinedCatImages[randomColorKey]!;
+    animatorCat.catImage.sprite = await Sprite.load(combinedImageFile);
+
+    final moveEffect = MoveEffect.to(
+      size / 2,
+      EffectController(duration: 1.5, curve: Curves.easeOut),
+    );
+    final scaleEffect = ScaleEffect.to(
+      Vector2.all(3.0),
+      EffectController(duration: 1.5, curve: Curves.easeOut),
+    );
+
+    await animatorCat.add(moveEffect);
+    await animatorCat.add(scaleEffect);
+
+    animatorCat.removeFromParent();
+    final particle = ParticleSystemComponent(
+      particle: Particle.generate(
+        count: 30,
+        lifespan: 1.0,
+        generator: (i) => AcceleratedParticle(
+          speed: Vector2(Random().nextDouble() * 400 - 200, Random().nextDouble() * -400),
+          child: CircleParticle(
+            radius: Random().nextDouble() * 4 + 2,
+            paint: Paint()..color = Colors.primaries[Random().nextInt(Colors.primaries.length)],
+          ),
+        ),
+      ),
+      position: size / 2,
+    );
+    add(particle);
+
     await Future.delayed(const Duration(seconds: 2));
-    await initializeStage();
+    onStageClear();
   }
 
-  Future<void> restartGame() async {
+  void resetStage() {
     _stage = 0;
-    await initializeStage();
   }
 
   void exitToMenu() {
