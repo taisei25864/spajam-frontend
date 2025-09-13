@@ -1,10 +1,11 @@
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 
 import '../cat_container.dart';
 import '../input_bar.dart';
+// ★★★ この行を修正 ★★★
+import 'dart:math';
 
 class MyGame extends FlameGame {
   final catContainers = <CatContainer>[];
@@ -30,7 +31,7 @@ class MyGame extends FlameGame {
       ..priority = -1;
     await add(background);
 
-    playerIndex = math.Random().nextInt(targetValues.length);
+    playerIndex = Random().nextInt(targetValues.length);
 
     screenFlash = RectangleComponent(
       size: size,
@@ -73,7 +74,8 @@ class MyGame extends FlameGame {
     inputBar = InputBar(
       displayHeight: displayHeight,
       maxValue: maxInputValue,
-    )..position = Vector2(screenWidth - 10, size.y / 2);
+    );
+    inputBar.position = Vector2(screenWidth - 10, size.y / 2);
     await add(inputBar);
 
     catContainers[playerIndex].setAsPlayer(inputBar.barColor);
@@ -100,9 +102,9 @@ class MyGame extends FlameGame {
     }
     timerText.text = 'Time: ${remainingTime.toStringAsFixed(1)}';
 
-    final myInputValue = ((math.sin(_time * 1.0) + 1) / 2) * maxInputValue;
-    final otherPlayerValue1 = ((math.sin(_time * 1.3 + 1) + 1) / 2) * maxInputValue;
-    final otherPlayerValue2 = ((math.sin(_time * 1.6 + 2) + 1) / 2) * maxInputValue;
+    final myInputValue = ((sin(_time * 1.0) + 1) / 2) * maxInputValue;
+    final otherPlayerValue1 = ((sin(_time * 1.3 + 1) + 1) / 2) * maxInputValue;
+    final otherPlayerValue2 = ((sin(_time * 1.6 + 2) + 1) / 2) * maxInputValue;
 
     catContainers[0].updateState(myInputValue);
     catContainers[1].updateState(otherPlayerValue1);
@@ -113,7 +115,7 @@ class MyGame extends FlameGame {
     if (_time > gracePeriod) {
       final isOutOfRange = (myInputValue - targetValues[playerIndex]).abs() > 0.5;
       if (isOutOfRange) {
-        final opacity = (math.sin(_time * 8) + 1) / 2;
+        final opacity = (sin(_time * 8) + 1) / 2;
         screenFlash.paint.color = Colors.red.withAlpha((opacity * 64).round());
       } else {
         screenFlash.paint.color = Colors.transparent;
