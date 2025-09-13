@@ -1,6 +1,6 @@
-import 'package:flame/components.dart';
 import 'package:flame/game.dart';
-import 'package:flutter/material.dart'; // 色を指定するために必要
+import 'package:flutter/widgets.dart';
+import 'cat.dart'; // 作成した cat.dart ファイルを読み込む
 
 void main() {
   final game = MyGame();
