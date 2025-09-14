@@ -2,10 +2,12 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
 class InputBar extends PositionComponent with HasGameReference {
+  static const Color moegiColor = Color(0xFF006E54); // 萌葱色
+  final Color barColor = moegiColor;
+
   late final RectangleComponent valueBar;
   late final TextComponent targetValueText;
   late final RectangleComponent targetRangeBar;
-  final Color barColor = Colors.cyan;
 
   final double displayHeight;
   final double maxValue;
@@ -14,8 +16,6 @@ class InputBar extends PositionComponent with HasGameReference {
     required this.displayHeight,
     required this.maxValue,
   });
-
-  double targetValue = 0;
 
   @override
   Future<void> onLoad() async {
@@ -45,13 +45,17 @@ class InputBar extends PositionComponent with HasGameReference {
     );
     await add(targetRangeBar);
 
-    // ★★★ この for ループを削除しました ★★★
-
     targetValueText = TextComponent(
-      text: 'Target: 0',
+      text: 'Target',
       anchor: Anchor.topCenter,
       position: Vector2(barWidth / 2, -30),
-      textRenderer: TextPaint(style: const TextStyle(color: Colors.white, fontSize: 20)),
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontFamily: 'YujiBoku',
+        ),
+      ),
     );
     await add(targetValueText);
   }
@@ -61,17 +65,18 @@ class InputBar extends PositionComponent with HasGameReference {
     valueBar.size.y = displayHeight * normalizedValue;
   }
 
-  void setTarget(double newTarget) {
-    targetValue = newTarget;
-    targetValueText.text = 'Target: ${newTarget.round()}';
+  // --- ▼▼▼ エラーの原因箇所を修正 ▼▼▼ ---
+  /// 目標を設定し、許容範囲（緑のバー）とテキストを更新する
+  void setTarget(String noteName, double targetHz, double rangeStartHz, double rangeEndHz) {
+    // テキストを「ド (262 Hz)」のような形式に変更
+    targetValueText.text = '$noteName (${targetHz.round()} Hz)';
 
-    final rangeStart = (newTarget - 0.5).clamp(0.0, maxValue);
-    final rangeEnd = (newTarget + 0.5).clamp(0.0, maxValue);
-
-    final normalizedStart = rangeStart / maxValue;
-    final normalizedEnd = rangeEnd / maxValue;
+    final normalizedStart = (rangeStartHz / maxValue).clamp(0.0, 1.0);
+    final normalizedEnd = (rangeEndHz / maxValue).clamp(0.0, 1.0);
 
     targetRangeBar.position.y = displayHeight * (1.0 - normalizedEnd);
     targetRangeBar.size.y = displayHeight * (normalizedEnd - normalizedStart);
   }
+// --- ▲▲▲ エラーの原因箇所を修正 ▲▲▲ ---
 }
+
