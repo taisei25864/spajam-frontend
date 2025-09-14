@@ -26,6 +26,9 @@ class MyGame extends FlameGame {
   late final TextComponent timerText;
   late final TextComponent stageText;
   CatContainer? animatorCat;
+  // --- ▼▼▼ 変更点: デバッグ用テキストを追加 ▼▼▼ ---
+  late final TextComponent _debugFrequencyText;
+  // --- ▲▲▲ 変更点 ▲▲▲ ---
 
   // --- 音声処理関連 ---
   final AudioInput _audioInput = AudioInput();
@@ -194,7 +197,7 @@ class MyGame extends FlameGame {
     // 1. ステージ表示
     final stageNoren = SpriteComponent(
       sprite: norenSprite,
-      size: Vector2(100, 70),
+      size: Vector2(200, 70),
       position: Vector2(10, 10),
       anchor: Anchor.topLeft,
       priority: 11,
@@ -217,7 +220,7 @@ class MyGame extends FlameGame {
     // 2. 時間表示
     final timeNoren = SpriteComponent(
       sprite: norenSprite,
-      size: Vector2(100, 70),
+      size: Vector2(180, 70),
       position: Vector2(size.x / 2, 10),
       anchor: Anchor.topCenter,
       priority: 11,
@@ -236,6 +239,23 @@ class MyGame extends FlameGame {
     );
     timeNoren.add(timerText);
     await add(timeNoren);
+
+    // --- ▼▼▼ 変更点: デバッグ用テキストを初期化して追加 ▼▼▼ ---
+    _debugFrequencyText = TextComponent(
+      text: 'Freq: 0.0 Hz',
+      position: Vector2(10, size.y - 30),
+      anchor: Anchor.bottomLeft,
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 16,
+          backgroundColor: Colors.black54,
+        ),
+      ),
+      priority: 20, // 他のUIより手前に表示
+    );
+    await add(_debugFrequencyText);
+    // --- ▲▲▲ 変更点 ▲▲▲ ---
   }
 
   void updatePlayerInput(int index, double value) {
@@ -264,17 +284,15 @@ class MyGame extends FlameGame {
 
     if (catContainers.isEmpty) return;
 
-    // --- ▼▼▼ 変更点: 入力スムージングを導入 ▼▼▼ ---
-    // プレイヤーの現在の入力値を取得
-    final currentInput = playerInputs[playerIndex];
-    // マイクから取得した周波数を目標値とする
-    final targetFrequency = _currentFrequency;
+    // --- ▼▼▼ 変更点: デバッグ用テキストを更新 ▼▼▼ ---
+    _debugFrequencyText.text = 'Freq: ${_currentFrequency.toStringAsFixed(2)} Hz';
+    // --- ▲▲▲ 変更点 ▲▲▲ ---
 
-    // 線形補間を使って、現在の入力値を目標周波数に滑らかに近づける
-    // 0.1 の部分を小さくするとより滑らかに(遅く)、大きくするとより機敏に(速く)なります
+    // --- 実際の音声入力でプレイヤーを操作 ---
+    final currentInput = playerInputs[playerIndex];
+    final targetFrequency = _currentFrequency;
     final smoothedInput = currentInput + (targetFrequency - currentInput) * 0.1;
     updatePlayerInput(playerIndex, smoothedInput);
-    // --- ▲▲▲ 変更点 ▲▲▲ ---
 
     // 他のプレイヤー(NPC)は、テストのため目標値に固定
     for (var i = 0; i < currentTargetValues.length; i++) {
