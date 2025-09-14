@@ -8,43 +8,59 @@ import 'package:flutter/material.dart';
 
 // ユーザー指定のインポートパス
 import '../cat_container.dart';
-import '../input_bar.dart';
+import '../input_bar.dart'; // input_bar.dartのパス
+import 'note_frequencies.dart'; // note_frequencies.dartのパス
 
 enum GameState { playing, stageClear, gameOver }
 
 class MyGame extends FlameGame {
-  final catContainers = <CatContainer>[];
+  // --- コンポーネント ---
+  final List<CatContainer> catContainers = [];
   late final InputBar inputBar;
+  late int playerIndex;
   late final RectangleComponent screenFlash;
   late final TextComponent timerText;
+  CatContainer? animatorCat;
 
-  final List<List<double>> stageTargetValues = [
-    [13.0, 18.0, 20.0],
-    [5.0, 15.0, 25.0],
-    [10.0, 15.0, 20.0],
+  // --- 設定値 ---
+  // ステージの目標値を音階のインデックスに変更
+  final List<List<int>> stageTargetNoteIndices = [
+    [0, 4, 7], // ステージ1: C, E, G (ドミソ)
+    [2, 5, 9], // ステージ2: D, F, A (レファラ)
+    [4, 7, 11], // ステージ3: E, G, B (ミソシ)
+    [0, 5, 9], // ステージ4: C, F, A (ドファラ)
+    [2, 7, 12], // ステージ5: D, G, C5 (レソ高いド)
   ];
-  late List<double> currentTargetValues;
-  final double maxInputValue = 30.0;
+
+  late List<double> currentTargetValues; // ここには実際の周波数(Hz)が入る
+  // 最大入力値を音階の最大周波数に設定
+  final double maxInputValue = NoteFrequencies.notes.last.maxHz;
   final double gameDuration = 20.0;
   final double gracePeriod = 5.0;
+  final double requiredTimeInRange = 2.0;
+  final double stageClearAnimationDuration = 1.5;
 
+  // --- 状態変数 ---
   double _time = 0;
-  late int playerIndex;
   GameState _gameState = GameState.playing;
   double _timeInRange = 0.0;
   int _stage = 0;
   late String randomColorKey;
-
   List<double> playerInputs = [0.0, 0.0, 0.0];
 
+  // --- コールバック ---
   final VoidCallback onExit;
   final VoidCallback onStageClear;
 
+  final int stage;
+
   MyGame({
+    required this.stage,
     required this.onExit,
     required this.onStageClear,
   });
 
+  // --- アセット定義 (変更なし) ---
   final Map<String, List<String>> catGroups = {
     'blue': ['blue_cat_1.png', 'blue_cat_2.png', 'blue_cat_3.png'],
     'normal': ['normal_cat_1.png', 'normal_cat_2.png', 'normal_cat_3.png'],
@@ -52,7 +68,6 @@ class MyGame extends FlameGame {
     'purple': ['purple_cat_1.png', 'purple_cat_2.png', 'purple_cat_3.png'],
     'green': ['green_cat_1.png', 'green_cat_2.png', 'green_cat_3.png'],
   };
-
   final Map<String, String> combinedCatImages = {
     'blue': 'blue_cat.png',
     'normal': 'normal_cat.png',
@@ -67,6 +82,7 @@ class MyGame extends FlameGame {
   }
 
   Future<void> initializeStage() async {
+    _stage = stage;
     overlays.clear();
     removeAll(children.whereType<Component>());
     catContainers.clear();
@@ -74,14 +90,14 @@ class MyGame extends FlameGame {
     _timeInRange = 0;
     _gameState = GameState.playing;
 
-    currentTargetValues = stageTargetValues[_stage % stageTargetValues.length];
+    // ステージの目標周波数を設定
+    final targetIndices = stageTargetNoteIndices[_stage % stageTargetNoteIndices.length];
+    currentTargetValues = targetIndices.map((index) => NoteFrequencies.notes[index].frequency).toList();
 
     final background = SpriteComponent()
       ..sprite = await Sprite.load('background.png')
       ..size = size ..position = Vector2.zero() ..priority = -1;
     await add(background);
-
-    playerIndex = Random().nextInt(currentTargetValues.length);
 
     screenFlash = RectangleComponent(size: size, paint: Paint()..color = Colors.transparent, priority: 10);
     await add(screenFlash);
@@ -90,6 +106,8 @@ class MyGame extends FlameGame {
     final catAreaWidth = screenWidth * 0.7;
     final spacing = catAreaWidth / (currentTargetValues.length + 1);
     final displayHeight = size.y * 0.8;
+
+    playerIndex = Random().nextInt(currentTargetValues.length);
 
     final playerZoneBackground = RectangleComponent(
       position: Vector2(spacing * (playerIndex + 1), size.y / 2),
@@ -119,7 +137,11 @@ class MyGame extends FlameGame {
     await add(inputBar);
 
     catContainers[playerIndex].setAsPlayer(inputBar.barColor);
-    inputBar.setTarget(currentTargetValues[playerIndex]);
+
+    // InputBarに音階名と周波数範囲を渡す
+    final playerTargetNoteIndex = targetIndices[playerIndex];
+    final playerNote = NoteFrequencies.notes[playerTargetNoteIndex];
+    inputBar.setTarget(playerNote.japaneseName, playerNote.frequency, playerNote.minHz, playerNote.maxHz);
 
     timerText = TextComponent(
       text: 'Time: ${gameDuration.toStringAsFixed(1)}',
@@ -129,11 +151,20 @@ class MyGame extends FlameGame {
       priority: 11,
     );
     await add(timerText);
+
+    final stageText = TextComponent(
+      text: 'Stage: ${_stage + 1}',
+      position: Vector2(20, 20),
+      anchor: Anchor.topLeft,
+      textRenderer: TextPaint(style: const TextStyle(color: Colors.white, fontSize: 32)),
+      priority: 11,
+    );
+    await add(stageText);
   }
 
   void updatePlayerInput(int index, double value) {
     if (index >= 0 && index < playerInputs.length) {
-      playerInputs[index] = value;
+      playerInputs[index] = value.clamp(0.0, maxInputValue);
     }
   }
 
@@ -157,7 +188,7 @@ class MyGame extends FlameGame {
 
     if (catContainers.isEmpty) return;
 
-    // ★★★ ステージクリア確認用：目標値を直接入力値に設定 ★★★
+    // ステージクリアテストのため、全入力を目標値に固定
     for (var i = 0; i < currentTargetValues.length; i++) {
       updatePlayerInput(i, currentTargetValues[i]);
     }
@@ -165,19 +196,17 @@ class MyGame extends FlameGame {
     for (var i = 0; i < catContainers.length; i++) {
       catContainers[i].updateState(playerInputs[i]);
     }
+
     inputBar.updateValue(playerInputs[playerIndex]);
 
-    final isPlayerOutOfRange = (playerInputs[playerIndex] - currentTargetValues[playerIndex]).abs() > 0.5;
-    if (_time > gracePeriod && isPlayerOutOfRange) {
-      final opacity = (sin(_time * 8) + 1) / 2;
-      screenFlash.paint.color = Colors.red.withAlpha((opacity * 64).round());
-    } else {
-      screenFlash.paint.color = Colors.transparent;
-    }
-
+    // 現実の周波数範囲に基づいたクリア判定
     bool allPlayersInRange = true;
+    final targetIndices = stageTargetNoteIndices[_stage % stageTargetNoteIndices.length];
     for (var i = 0; i < playerInputs.length; i++) {
-      if ((playerInputs[i] - currentTargetValues[i]).abs() > 0.5) {
+      final targetNote = NoteFrequencies.notes[targetIndices[i]];
+      final inputFrequency = playerInputs[i];
+
+      if (inputFrequency < targetNote.minHz || inputFrequency > targetNote.maxHz) {
         allPlayersInRange = false;
         break;
       }
@@ -185,51 +214,70 @@ class MyGame extends FlameGame {
 
     if (allPlayersInRange) {
       _timeInRange += dt;
-      if (_timeInRange >= 2.0) {
+      if (_timeInRange >= requiredTimeInRange) {
         _gameState = GameState.stageClear;
         unawaited(_goToNextStage());
       }
     } else {
       _timeInRange = 0;
     }
+
+    if (remainingTime <= 5.0) {
+      final flashOpacity = (sin(_time * pi * 2) + 1) / 2;
+      screenFlash.paint.color = Colors.red.withAlpha((flashOpacity * 0.25 * 255).round());
+    } else {
+      if (_time > gracePeriod && !allPlayersInRange) {
+        // screenFlash.paint.color = Colors.red.withAlpha((0.2 * 255).round());
+      } else {
+        screenFlash.paint.color = Colors.transparent;
+      }
+    }
   }
 
   Future<void> _goToNextStage() async {
-    _stage++;
     _gameState = GameState.stageClear;
 
-    final clearText = TextComponent(
+    add(TextComponent(
       text: 'STAGE CLEAR!',
-      position: size / 2, anchor: Anchor.center,
+      position: size / 2,
+      anchor: Anchor.center,
       textRenderer: TextPaint(style: const TextStyle(fontSize: 48, color: Colors.yellow)),
       priority: 12,
-    );
-    add(clearText);
+    ));
 
-    if (catContainers.length < 3) return;
+    if (catContainers.isEmpty) return;
 
-    final animatorCat = catContainers[1];
-
-    catContainers[0].removeFromParent();
-    catContainers[2].removeFromParent();
+    for (final cat in catContainers) {
+      cat.removeFromParent();
+    }
     inputBar.removeFromParent();
 
     final combinedImageFile = combinedCatImages[randomColorKey]!;
-    animatorCat.catImage.sprite = await Sprite.load(combinedImageFile);
-
-    final moveEffect = MoveEffect.to(
-      size / 2,
-      EffectController(duration: 1.5, curve: Curves.easeOut),
+    final combinedCat = SpriteComponent(
+      sprite: await Sprite.load(combinedImageFile),
+      position: size / 2,
+      anchor: Anchor.center,
+      scale: Vector2.zero(),
     );
+    await add(combinedCat);
+
     final scaleEffect = ScaleEffect.to(
       Vector2.all(3.0),
-      EffectController(duration: 1.5, curve: Curves.easeOut),
+      EffectController(
+        duration: stageClearAnimationDuration,
+        curve: Curves.easeOut,
+      ),
+      onComplete: () {
+        if (combinedCat.isMounted) {
+          _shatterAndContinue(combinedCat);
+        }
+      },
     );
+    combinedCat.add(scaleEffect);
+  }
 
-    await animatorCat.add(moveEffect);
-    await animatorCat.add(scaleEffect);
-
-    animatorCat.removeFromParent();
+  void _shatterAndContinue(Component catToRemove) {
+    catToRemove.removeFromParent();
     final particle = ParticleSystemComponent(
       particle: Particle.generate(
         count: 30,
@@ -246,8 +294,7 @@ class MyGame extends FlameGame {
     );
     add(particle);
 
-    await Future.delayed(const Duration(seconds: 2));
-    onStageClear();
+    Future.delayed(const Duration(seconds: 2), onStageClear);
   }
 
   void resetStage() {
@@ -258,3 +305,4 @@ class MyGame extends FlameGame {
     onExit();
   }
 }
+

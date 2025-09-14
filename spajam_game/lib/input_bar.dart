@@ -45,10 +45,8 @@ class InputBar extends PositionComponent with HasGameReference {
     );
     await add(targetRangeBar);
 
-    // ★★★ この for ループを削除しました ★★★
-
     targetValueText = TextComponent(
-      text: 'Target: 0',
+      text: 'Target',
       anchor: Anchor.topCenter,
       position: Vector2(barWidth / 2, -30),
       textRenderer: TextPaint(style: const TextStyle(color: Colors.white, fontSize: 20)),
@@ -61,17 +59,17 @@ class InputBar extends PositionComponent with HasGameReference {
     valueBar.size.y = displayHeight * normalizedValue;
   }
 
-  void setTarget(double newTarget) {
-    targetValue = newTarget;
-    targetValueText.text = 'Target: ${newTarget.round()}';
+  /// 目標を設定し、許容範囲（緑のバー）とテキストを更新する
+  void setTarget(String noteName, double targetHz, double rangeStartHz, double rangeEndHz) {
+    targetValue = targetHz;
+    // テキストを「ド (262 Hz)」のような形式に変更
+    targetValueText.text = '$noteName (${targetHz.round()} Hz)';
 
-    final rangeStart = (newTarget - 0.5).clamp(0.0, maxValue);
-    final rangeEnd = (newTarget + 0.5).clamp(0.0, maxValue);
-
-    final normalizedStart = rangeStart / maxValue;
-    final normalizedEnd = rangeEnd / maxValue;
+    final normalizedStart = (rangeStartHz / maxValue).clamp(0.0, 1.0);
+    final normalizedEnd = (rangeEndHz / maxValue).clamp(0.0, 1.0);
 
     targetRangeBar.position.y = displayHeight * (1.0 - normalizedEnd);
     targetRangeBar.size.y = displayHeight * (normalizedEnd - normalizedStart);
   }
 }
+

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
-
 import '../game/my_game.dart';
+import 'result_screen.dart';
 import 'menu_screen.dart';
 
 class GameScreen extends StatefulWidget {
@@ -13,35 +13,54 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  // Keyを使ってゲームウィジェットを再生成できるようにする
-  Key _gameWidgetKey = UniqueKey();
+  // 現在のステージ番号をStateとして管理 (0から始まる)
+  int _currentStage = 0;
+  // 全ステージ数を定義
+  final int totalStages = 5;
+
+  void _onExit() {
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil(MenuScreen.routeName, (r) => false);
+  }
+
+  void _onStageClear() {
+    if (!mounted) return;
+
+    // 現在のステージが最終ステージ (5ステージ目 = _currentStageが4) かどうかをチェック
+    if (_currentStage >= totalStages - 1) {
+      // 最終ステージをクリアした場合、ResultScreenに遷移
+      // pushNamedAndRemoveUntilで、ゲーム画面に戻れないようにする
+      Navigator.of(context).pushNamedAndRemoveUntil(ResultScreen.routeName, (r) => false);
+    } else {
+      // それ以外の場合は、次のステージへ進む
+      setState(() {
+        _currentStage++;
+      });
+    }
+  }
+
+  void _onRestart() {
+    // ステージ番号をリセットして、再描画をトリガーする
+    setState(() {
+      _currentStage = 0;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: GameWidget(
-        key: _gameWidgetKey,
+        // ValueKeyに現在のステージ番号を渡すことで、ステージが変わるたびに
+        // GameWidgetが新しいものとして認識され、MyGameが再生成される
+        key: ValueKey(_currentStage),
+        // MyGameの呼び出し時に、必須パラメータ 'stage' を正しく渡す
         game: MyGame(
-          // 終了ボタンが押されたときの処理
-          onExit: () {
-            if (!mounted) return;
-            Navigator.of(context).pushNamedAndRemoveUntil(
-              MenuScreen.routeName,
-                  (route) => false,
-            );
-          },
-          // ステージクリア時に呼ばれる処理
-          onStageClear: () {
-            setState(() {
-              // Keyを変更してGameWidgetを再生成し、次のステージに進む
-              _gameWidgetKey = UniqueKey();
-            });
-          },
+          stage: _currentStage,
+          onExit: _onExit,
+          onStageClear: _onStageClear,
         ),
-        // ゲームオーバー時に表示するUI
         overlayBuilderMap: {
           'gameOver': (context, game) {
-            final myGame = game as MyGame;
             return Center(
               child: Container(
                 padding: const EdgeInsets.all(24),
@@ -58,18 +77,12 @@ class _GameScreenState extends State<GameScreen> {
                     ),
                     const SizedBox(height: 24),
                     ElevatedButton(
-                      // リスタートボタンが押されたら、Keyを変更して再生成
-                      onPressed: () {
-                        setState(() {
-                          myGame.resetStage(); // ステージ番号をリセット
-                          _gameWidgetKey = UniqueKey();
-                        });
-                      },
+                      onPressed: _onRestart,
                       child: const Text('リスタート'),
                     ),
                     const SizedBox(height: 12),
                     ElevatedButton(
-                      onPressed: myGame.exitToMenu,
+                      onPressed: _onExit,
                       child: const Text('終了'),
                     ),
                   ],
@@ -82,3 +95,4 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 }
+
