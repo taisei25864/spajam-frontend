@@ -197,7 +197,7 @@ class MyGame extends FlameGame {
     // 1. ステージ表示
     final stageNoren = SpriteComponent(
       sprite: norenSprite,
-      size: Vector2(130, 70),
+      size: Vector2(200, 70),
       position: Vector2(10, 10),
       anchor: Anchor.topLeft,
       priority: 11,
@@ -220,7 +220,7 @@ class MyGame extends FlameGame {
     // 2. 時間表示
     final timeNoren = SpriteComponent(
       sprite: norenSprite,
-      size: Vector2(130, 70),
+      size: Vector2(180, 70),
       position: Vector2(size.x / 2, 10),
       anchor: Anchor.topCenter,
       priority: 11,

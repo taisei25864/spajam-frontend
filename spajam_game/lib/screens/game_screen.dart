@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
-import '../game/my_game.dart';
+import '../game/my_game.dart'; // ← このimportパスが正しいか、再度ご確認ください
 import 'result_screen.dart';
 import 'menu_screen.dart';
 
@@ -56,10 +56,13 @@ class _GameScreenState extends State<GameScreen> {
         // GameWidgetが新しいものとして認識され、MyGameが再生成される
         key: ValueKey(_currentStage),
 
-        // MyGameの呼び出し時に、必須パラメータ 'stage' を正しく渡す
+        // MyGame(...) はクラスのインスタンスを生成する正しい構文です。
+        // この行でエラーが発生する場合、以下の原因が考えられます。
+        // 1. 上の import '../game/my_game.dart'; のパスが間違っている。
+        // 2. 'my_game.dart' ファイル内に 'MyGame' という名前のクラスが正しく定義されていない。
+        // 3. プロジェクトのキャッシュが古い（その場合は `flutter clean` を実行してみてください）。
         game: MyGame(
           stage: _currentStage,
-
           onExit: _onExit,
           onStageClear: _onStageClear,
         ),
