@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:typed_data'; // エラー解決のため、正しいUint8Listをインポート
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
 import 'package:flame/game.dart';
@@ -11,6 +12,8 @@ import '../cat_container.dart';
 import '../input_bar.dart';
 import 'note_frequencies.dart';
 import '../sounds/audio_input.dart';
+import '../sounds/audio_analyzer.dart';
+import '../sounds/frequency_filter.dart';
 
 enum GameState { playing, stageClear, gameOver }
 
@@ -23,6 +26,13 @@ class MyGame extends FlameGame {
   late final TextComponent timerText;
   late final TextComponent stageText;
   CatContainer? animatorCat;
+
+  // --- 音声処理関連 ---
+  final AudioInput _audioInput = AudioInput();
+  final AudioAnalyzer _analyzer = AudioAnalyzer();
+  final FrequencyFilter _filter = FrequencyFilter();
+  StreamSubscription<Uint8List>? _streamSubscription;
+  double _currentFrequency = 0.0;
 
   // --- 設定値 ---
   final List<String> stageDisplayNames = ['壱枚目', '弐枚目', '参枚目', '肆枚目', '伍枚目'];
@@ -80,8 +90,43 @@ class MyGame extends FlameGame {
 
   @override
   Future<void> onLoad() async {
+    // 最初にUIなどの視覚要素を初期化
     await initializeStage();
+    // 次に音声入力の準備を開始
+    await _startAudioProcessing();
   }
+
+  @override
+  void onRemove() {
+    // ゲーム終了時に必ずストリームを停止してリソースを解放
+    _streamSubscription?.cancel();
+    super.onRemove();
+  }
+
+  /// 音声処理を開始するメソッド
+  Future<void> _startAudioProcessing() async {
+    try {
+      await _audioInput.checkPermission();
+      // AudioInputのstartメソッドがStreamを返すことを想定
+      final audioStream = await _audioInput.start(sampleRate: 44100, numChannels: 1);
+
+      // audioStreamがnullでないことを確認してからlistenする
+      if (audioStream != null) {
+        _streamSubscription = audioStream.listen((data) {
+          // マイクからの音声データをリアルタイムで処理
+          final rawFrequency = _analyzer.detectFrequency(data);
+          _currentFrequency = _filter.filter(rawFrequency);
+        }, onError: (err) {
+          debugPrint("Audio Stream Error: $err");
+        });
+      } else {
+        debugPrint("Audio stream is null. Could not start listening.");
+      }
+    } catch (e) {
+      debugPrint("Could not start audio processing: $e");
+    }
+  }
+
 
   Future<void> initializeStage() async {
     _stage = stage;
@@ -144,11 +189,11 @@ class MyGame extends FlameGame {
     inputBar.setTarget(playerNote.japaneseName, playerNote.frequency, playerNote.minHz, playerNote.maxHz);
 
     final norenSprite = await Sprite.load('norenn.png');
-    const norenColor = Color(0xFFFFFFFF); // 暖簾に合うように濃い茶色
+    const norenColor = Color(0xFF4B3A2F); // 暖簾に合うように濃い茶色に戻す
 
     // 1. ステージ表示
     final stageNoren = SpriteComponent(
-      sprite: norenSprite, // .clone() を削除
+      sprite: norenSprite,
       size: Vector2(200, 70),
       position: Vector2(10, 10),
       anchor: Anchor.topLeft,
@@ -171,7 +216,7 @@ class MyGame extends FlameGame {
 
     // 2. 時間表示
     final timeNoren = SpriteComponent(
-      sprite: norenSprite, // .clone() を削除
+      sprite: norenSprite,
       size: Vector2(180, 70),
       position: Vector2(size.x / 2, 10),
       anchor: Anchor.topCenter,
@@ -219,9 +264,14 @@ class MyGame extends FlameGame {
 
     if (catContainers.isEmpty) return;
 
-    // ステージクリアテストのため、全入力を目標値に固定
+    // --- 実際の音声入力でプレイヤーを操作 ---
+    updatePlayerInput(playerIndex, _currentFrequency);
+
+    // 他のプレイヤー(NPC)は、テストのため目標値に固定
     for (var i = 0; i < currentTargetValues.length; i++) {
-      updatePlayerInput(i, currentTargetValues[i]);
+      if (i != playerIndex) {
+        updatePlayerInput(i, currentTargetValues[i]);
+      }
     }
 
     for (var i = 0; i < catContainers.length; i++) {
