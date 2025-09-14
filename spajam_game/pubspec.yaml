@@ -52,3 +52,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+  # fontsセクションを追加して、カスタムフォントを定義
+  fonts:
+    - family: YujiBoku # ゲーム内でこの名前(YujiBoku)を使ってフォントを指定します
+      fonts:
+        - asset: assets/fonts/YujiBoku-Regular.ttf # フォントファイルのパス

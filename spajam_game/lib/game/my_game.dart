@@ -8,7 +8,11 @@ import 'package:flutter/material.dart';
 
 // ユーザー指定のインポートパス
 import '../cat_container.dart';
-import '../input_bar.dart';
+import '../input_bar.dart'; // input_bar.dartのパス
+import 'note_frequencies.dart'; // note_frequencies.dartのパス
+import '../sounds/audio_input.dart';
+
+enum GameState { playing, stageClear, gameOver }
 
 enum GameState { playing, stageClear, gameOver }
 
@@ -19,21 +23,30 @@ class MyGame extends FlameGame {
   late int playerIndex;
   late final RectangleComponent screenFlash;
   late final TextComponent timerText;
+
+  late final TextComponent stageText; // stageTextをクラス変数に
   CatContainer? animatorCat;
 
   // --- 設定値 ---
-  final List<List<double>> stageTargetValues = [
-    [13.0, 18.0, 20.0],
-    [5.0, 15.0, 25.0],
-    [10.0, 15.0, 20.0],
-    // ここに新しいステージの目標値を追加できます
+  // --- ▼▼▼ 変更点: ステージ表示用のテキストリストを追加 ▼▼▼ ---
+  final List<String> stageDisplayNames = ['壱枚目', '弐枚目', '参枚目', '肆枚目', '伍枚目'];
+  // --- ▲▲▲ 変更点 ▲▲▲ ---
+
+  // ステージの目標値を音階のインデックスに変更
+  final List<List<int>> stageTargetNoteIndices = [
+    [0, 4, 7], // ステージ1: C, E, G (ドミソ)
+    [2, 5, 9], // ステージ2: D, F, A (レファラ)
+    [4, 7, 11], // ステージ3: E, G, B (ミソシ)
+    [0, 5, 9], // ステージ4: C, F, A (ドファラ)
+    [2, 7, 12], // ステージ5: D, G, C5 (レソ高いド)
   ];
-  late List<double> currentTargetValues;
-  final double maxInputValue = 30.0;
+
+  late List<double> currentTargetValues; // ここには実際の周波数(Hz)が入る
+  // 最大入力値を音階の最大周波数に設定
+  final double maxInputValue = NoteFrequencies.notes.last.maxHz;
   final double gameDuration = 20.0;
   final double gracePeriod = 5.0;
-  // 許容誤差や時間を定数として定義
-  final double targetTolerance = 0.5;
+
   final double requiredTimeInRange = 2.0;
   final double stageClearAnimationDuration = 1.5;
 
@@ -41,9 +54,10 @@ class MyGame extends FlameGame {
   double _time = 0;
   GameState _gameState = GameState.playing;
   double _timeInRange = 0.0;
-  int _stage = 0; // GameScreenから渡されたステージ番号を保持
+
+  int _stage = 0;
   late String randomColorKey;
-  // 3人分の入力値を保持するリスト
+
   List<double> playerInputs = [0.0, 0.0, 0.0];
 
   // --- コールバック ---
@@ -52,11 +66,13 @@ class MyGame extends FlameGame {
 
   final int stage;
 
+
   MyGame({
-    required this.stage, // GameScreenから現在のステージ番号を受け取る
+    required this.stage,
     required this.onExit,
     required this.onStageClear,
   });
+
 
   // --- アセット定義 (変更なし) ---
   final Map<String, List<String>> catGroups = {
@@ -83,7 +99,6 @@ class MyGame extends FlameGame {
   Future<void> initializeStage() async {
     _stage = stage;
 
-    // リセット処理
     overlays.clear();
     removeAll(children.whereType<Component>());
     catContainers.clear();
@@ -91,7 +106,11 @@ class MyGame extends FlameGame {
     _timeInRange = 0;
     _gameState = GameState.playing;
 
-    currentTargetValues = stageTargetValues[_stage % stageTargetValues.length];
+
+    // ステージの目標周波数を設定
+    final targetIndices = stageTargetNoteIndices[_stage % stageTargetNoteIndices.length];
+    currentTargetValues = targetIndices.map((index) => NoteFrequencies.notes[index].frequency).toList();
+
 
     final background = SpriteComponent()
       ..sprite = await Sprite.load('background.png')
@@ -136,25 +155,50 @@ class MyGame extends FlameGame {
     await add(inputBar);
 
     catContainers[playerIndex].setAsPlayer(inputBar.barColor);
-    inputBar.setTarget(currentTargetValues[playerIndex]);
+
+
+    // InputBarに音階名と周波数範囲を渡す
+    final playerTargetNoteIndex = targetIndices[playerIndex];
+    final playerNote = NoteFrequencies.notes[playerTargetNoteIndex];
+    inputBar.setTarget(playerNote.japaneseName, playerNote.frequency, playerNote.minHz, playerNote.maxHz);
+
 
     timerText = TextComponent(
       text: 'Time: ${gameDuration.toStringAsFixed(1)}',
       position: Vector2(size.x / 2, 20),
       anchor: Anchor.topCenter,
-      textRenderer: TextPaint(style: const TextStyle(color: Colors.white, fontSize: 32)),
+
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 32,
+          fontFamily: 'YujiBoku',
+        ),
+      ),
+
       priority: 11,
     );
     await add(timerText);
 
-    final stageText = TextComponent(
-      text: 'Stage: ${_stage + 1}', // 0から始まるので+1して表示
+
+    // --- ▼▼▼ 変更点: ステージテキストの表示内容を変更 ▼▼▼ ---
+    stageText = TextComponent(
+      // _stage番号をインデックスとして使い、リストから対応する文字列を取得
+      text: stageDisplayNames[_stage],
       position: Vector2(20, 20),
       anchor: Anchor.topLeft,
-      textRenderer: TextPaint(style: const TextStyle(color: Colors.white, fontSize: 32)),
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 32,
+          fontFamily: 'YujiBoku',
+        ),
+      ),
       priority: 11,
     );
     await add(stageText);
+    // --- ▲▲▲ 変更点 ▲▲▲ ---
+
   }
 
   void updatePlayerInput(int index, double value) {
@@ -183,7 +227,8 @@ class MyGame extends FlameGame {
 
     if (catContainers.isEmpty) return;
 
-    // テストのため、現在のステージの目標値を直接入力値として設定する
+
+    // ステージクリアテストのため、全入力を目標値に固定
     for (var i = 0; i < currentTargetValues.length; i++) {
       updatePlayerInput(i, currentTargetValues[i]);
     }
@@ -194,9 +239,14 @@ class MyGame extends FlameGame {
 
     inputBar.updateValue(playerInputs[playerIndex]);
 
+    // 現実の周波数範囲に基づいたクリア判定
     bool allPlayersInRange = true;
+    final targetIndices = stageTargetNoteIndices[_stage % stageTargetNoteIndices.length];
     for (var i = 0; i < playerInputs.length; i++) {
-      if ((playerInputs[i] - currentTargetValues[i]).abs() > targetTolerance) {
+      final targetNote = NoteFrequencies.notes[targetIndices[i]];
+      final inputFrequency = playerInputs[i];
+
+      if (inputFrequency < targetNote.minHz || inputFrequency > targetNote.maxHz) {
         allPlayersInRange = false;
         break;
       }
@@ -213,7 +263,8 @@ class MyGame extends FlameGame {
     }
 
     if (remainingTime <= 5.0) {
-      final flashOpacity = (sin(_time * pi * 2) + 1) / 2; // 0.0 ~ 1.0
+      final flashOpacity = (sin(_time * pi * 2) + 1) / 2;
+
       screenFlash.paint.color = Colors.red.withAlpha((flashOpacity * 0.25 * 255).round());
     } else {
       if (_time > gracePeriod && !allPlayersInRange) {
@@ -231,31 +282,31 @@ class MyGame extends FlameGame {
       text: 'STAGE CLEAR!',
       position: size / 2,
       anchor: Anchor.center,
-      textRenderer: TextPaint(style: const TextStyle(fontSize: 48, color: Colors.yellow)),
+
+      textRenderer: TextPaint(style: const TextStyle(fontSize: 48, color: Colors.yellow, fontFamily: 'YujiBoku')),
+
       priority: 12,
     ));
 
     if (catContainers.isEmpty) return;
 
-    // --- ▼▼▼ ここからがアニメーションの変更部分 ▼▼▼ ---
 
-    // 1. 既存の猫たちと入力バーをすべて削除
     for (final cat in catContainers) {
       cat.removeFromParent();
     }
     inputBar.removeFromParent();
 
-    // 2. 統合された猫を画面中央に新しく生成
+
     final combinedImageFile = combinedCatImages[randomColorKey]!;
     final combinedCat = SpriteComponent(
       sprite: await Sprite.load(combinedImageFile),
-      position: size / 2, // 最初から中央に配置
+      position: size / 2,
       anchor: Anchor.center,
-      scale: Vector2.zero(), // 最初は大きさを0にして、拡大アニメーションで表示する
+      scale: Vector2.zero(),
     );
     await add(combinedCat);
 
-    // 3. 統合された猫に拡大エフェクトを追加
+
     final scaleEffect = ScaleEffect.to(
       Vector2.all(3.0),
       EffectController(
@@ -263,7 +314,7 @@ class MyGame extends FlameGame {
         curve: Curves.easeOut,
       ),
       onComplete: () {
-        // 4. アニメーション完了後に破裂エフェクトを呼び出す
+
         if (combinedCat.isMounted) {
           _shatterAndContinue(combinedCat);
         }
@@ -271,7 +322,7 @@ class MyGame extends FlameGame {
     );
 
     combinedCat.add(scaleEffect);
-    // --- ▲▲▲ ここまでがアニメーションの変更部分 ▲▲▲ ---
+
   }
 
   void _shatterAndContinue(Component catToRemove) {

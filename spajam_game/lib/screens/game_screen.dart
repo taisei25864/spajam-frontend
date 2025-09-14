@@ -26,7 +26,7 @@ class _GameScreenState extends State<GameScreen> {
   void _onStageClear() {
     if (!mounted) return;
 
-    // --- ▼▼▼ ここからが変更部分 ▼▼▼ ---
+
     // 現在のステージが最終ステージ (5ステージ目 = _currentStageが4) かどうかをチェック
     if (_currentStage >= totalStages - 1) {
       // 最終ステージをクリアした場合、ResultScreenに遷移
@@ -38,7 +38,7 @@ class _GameScreenState extends State<GameScreen> {
         _currentStage++;
       });
     }
-    // --- ▲▲▲ ここまでが変更部分 ▲▲▲ ---
+
   }
 
   void _onRestart() {
@@ -55,14 +55,17 @@ class _GameScreenState extends State<GameScreen> {
         // ValueKeyに現在のステージ番号を渡すことで、ステージが変わるたびに
         // GameWidgetが新しいものとして認識され、MyGameが再生成される
         key: ValueKey(_currentStage),
+
+        // MyGameの呼び出し時に、必須パラメータ 'stage' を正しく渡す
         game: MyGame(
-          stage: _currentStage, // MyGameに現在のステージ番号を渡す
+          stage: _currentStage,
+
           onExit: _onExit,
           onStageClear: _onStageClear,
         ),
         overlayBuilderMap: {
           'gameOver': (context, game) {
-            // オーバーレイ部分は変更なし
+
             return Center(
               child: Container(
                 padding: const EdgeInsets.all(24),
