@@ -105,7 +105,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                         ),
                       ),
                       Image.asset(
-                        'assets/images/spanyan_full.png',
+                        'assets/images/06_下呂.png',
                         fit: BoxFit.contain,
                         height: 200,
                       ),

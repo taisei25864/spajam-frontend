@@ -5,6 +5,7 @@ import 'state/game_state.dart';
 import 'screens/menu_screen.dart';
 import 'screens/lobby_screen.dart';
 import 'screens/game_screen.dart';
+import 'screens/result_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -27,6 +28,7 @@ class SpanyanApp extends StatelessWidget {
           MenuScreen.routeName: (_) => const MenuScreen(),
           LobbyScreen.routeName: (_) => const LobbyScreen(),
           GameScreen.routeName: (_) => GameScreen(),
+          ResultScreen.routeName: (_) => ResultScreen(),
         },
       ),
     );
