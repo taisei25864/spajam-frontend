@@ -144,12 +144,12 @@ class MyGame extends FlameGame {
     inputBar.setTarget(playerNote.japaneseName, playerNote.frequency, playerNote.minHz, playerNote.maxHz);
 
     final norenSprite = await Sprite.load('norenn.png');
-    const norenColor = Color(0xFF4B3A2F); // 暖簾に合うように濃い茶色
+    const norenColor = Color(0xFFFFFFFF); // 暖簾に合うように濃い茶色
 
     // 1. ステージ表示
     final stageNoren = SpriteComponent(
       sprite: norenSprite, // .clone() を削除
-      size: Vector2(180, 60),
+      size: Vector2(200, 70),
       position: Vector2(10, 10),
       anchor: Anchor.topLeft,
       priority: 11,
@@ -172,7 +172,7 @@ class MyGame extends FlameGame {
     // 2. 時間表示
     final timeNoren = SpriteComponent(
       sprite: norenSprite, // .clone() を削除
-      size: Vector2(180, 60),
+      size: Vector2(180, 70),
       position: Vector2(size.x / 2, 10),
       anchor: Anchor.topCenter,
       priority: 11,
