@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'flutter_webrtc/flutter_webrtc.dart';
 
 class SignalingService {
   WebSocket? _socket;
@@ -98,4 +99,9 @@ class SignalingService {
   }
 }
 
-class WebRTCService {}
+// WebRTCService
+// プロパティ: 
+// メソッド: SDPオファーの作成、SDPアンサーの作成、ICE候補の処理
+class WebRTCService {
+  Future<
+}
