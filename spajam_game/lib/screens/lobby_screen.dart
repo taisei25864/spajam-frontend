@@ -56,6 +56,7 @@ class LobbyScreen extends StatelessWidget {
                                 final status = await Permission.microphone.request();
                                 if (!status.isGranted) {
                                   debugPrint('Microphone permission denied');
+                                    await Permission.microphone.request();
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(content: Text('マイク権限が必要です')),
