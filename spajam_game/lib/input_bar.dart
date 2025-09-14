@@ -2,8 +2,15 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
 class InputBar extends PositionComponent with HasGameReference {
+  // --- ▼▼▼ ここからが変更部分 ▼▼▼ ---
+
+  // 1. 和風の色を定数として定義
   static const Color moegiColor = Color(0xFF006E54); // 萌葱色
+
+  // 2. barColorが、上で定義したmoegiColorを使うように変更
   final Color barColor = moegiColor;
+
+  // --- ▲▲▲ ここまでが変更部分 ▲▲▲ ---
 
   late final RectangleComponent valueBar;
   late final TextComponent targetValueText;
@@ -16,6 +23,8 @@ class InputBar extends PositionComponent with HasGameReference {
     required this.displayHeight,
     required this.maxValue,
   });
+
+  double targetValue = 0;
 
   @override
   Future<void> onLoad() async {
@@ -32,7 +41,7 @@ class InputBar extends PositionComponent with HasGameReference {
     valueBar = RectangleComponent(
       position: Vector2(0, displayHeight),
       size: Vector2(barWidth, 0),
-      paint: Paint()..color = barColor,
+      paint: Paint()..color = barColor, // ここでmoegiColorが使われる
       anchor: Anchor.bottomLeft,
     );
     await add(valueBar);
@@ -49,13 +58,7 @@ class InputBar extends PositionComponent with HasGameReference {
       text: 'Target',
       anchor: Anchor.topCenter,
       position: Vector2(barWidth / 2, -30),
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontFamily: 'YujiBoku',
-        ),
-      ),
+      textRenderer: TextPaint(style: const TextStyle(color: Colors.white, fontSize: 20)),
     );
     await add(targetValueText);
   }
@@ -65,9 +68,9 @@ class InputBar extends PositionComponent with HasGameReference {
     valueBar.size.y = displayHeight * normalizedValue;
   }
 
-  // --- ▼▼▼ エラーの原因箇所を修正 ▼▼▼ ---
   /// 目標を設定し、許容範囲（緑のバー）とテキストを更新する
   void setTarget(String noteName, double targetHz, double rangeStartHz, double rangeEndHz) {
+    targetValue = targetHz;
     // テキストを「ド (262 Hz)」のような形式に変更
     targetValueText.text = '$noteName (${targetHz.round()} Hz)';
 
@@ -77,6 +80,5 @@ class InputBar extends PositionComponent with HasGameReference {
     targetRangeBar.position.y = displayHeight * (1.0 - normalizedEnd);
     targetRangeBar.size.y = displayHeight * (normalizedEnd - normalizedStart);
   }
-// --- ▲▲▲ エラーの原因箇所を修正 ▲▲▲ ---
 }
 
