@@ -194,7 +194,7 @@ class MyGame extends FlameGame {
     // 1. ステージ表示
     final stageNoren = SpriteComponent(
       sprite: norenSprite,
-      size: Vector2(200, 70),
+      size: Vector2(100, 70),
       position: Vector2(10, 10),
       anchor: Anchor.topLeft,
       priority: 11,
@@ -217,7 +217,7 @@ class MyGame extends FlameGame {
     // 2. 時間表示
     final timeNoren = SpriteComponent(
       sprite: norenSprite,
-      size: Vector2(180, 70),
+      size: Vector2(100, 70),
       position: Vector2(size.x / 2, 10),
       anchor: Anchor.topCenter,
       priority: 11,
@@ -264,8 +264,17 @@ class MyGame extends FlameGame {
 
     if (catContainers.isEmpty) return;
 
-    // --- 実際の音声入力でプレイヤーを操作 ---
-    updatePlayerInput(playerIndex, _currentFrequency);
+    // --- ▼▼▼ 変更点: 入力スムージングを導入 ▼▼▼ ---
+    // プレイヤーの現在の入力値を取得
+    final currentInput = playerInputs[playerIndex];
+    // マイクから取得した周波数を目標値とする
+    final targetFrequency = _currentFrequency;
+
+    // 線形補間を使って、現在の入力値を目標周波数に滑らかに近づける
+    // 0.1 の部分を小さくするとより滑らかに(遅く)、大きくするとより機敏に(速く)なります
+    final smoothedInput = currentInput + (targetFrequency - currentInput) * 0.1;
+    updatePlayerInput(playerIndex, smoothedInput);
+    // --- ▲▲▲ 変更点 ▲▲▲ ---
 
     // 他のプレイヤー(NPC)は、テストのため目標値に固定
     for (var i = 0; i < currentTargetValues.length; i++) {
