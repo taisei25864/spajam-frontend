@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
-
 import '../game/my_game.dart';
-import 'menu_screen.dart'; // MenuScreenをインポート
+import 'result_screen.dart';
+import 'menu_screen.dart';
 
 class GameScreen extends StatefulWidget {
   static const routeName = '/game';
@@ -13,27 +13,88 @@ class GameScreen extends StatefulWidget {
 }
 
 class _GameScreenState extends State<GameScreen> {
-  late final MyGame _game;
+  // 現在のステージ番号をStateとして管理 (0から始まる)
+  int _currentStage = 0;
+  // 全ステージ数を定義
+  final int totalStages = 5;
 
-  @override
-  void initState() {
-    super.initState();
-    // MyGameインスタンスを作成する際に、onExitコールバックを渡す
-    _game = MyGame(
-      onExit: () {
-        // メニュー画面に戻り、それまでの画面をすべて削除する
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          MenuScreen.routeName,
-              (route) => false,
-        );
-      },
-    );
+  void _onExit() {
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil(MenuScreen.routeName, (r) => false);
+  }
+
+  void _onStageClear() {
+    if (!mounted) return;
+
+    // --- ▼▼▼ ここからが変更部分 ▼▼▼ ---
+    // 現在のステージが最終ステージ (5ステージ目 = _currentStageが4) かどうかをチェック
+    if (_currentStage >= totalStages - 1) {
+      // 最終ステージをクリアした場合、ResultScreenに遷移
+      // pushNamedAndRemoveUntilで、ゲーム画面に戻れないようにする
+      Navigator.of(context).pushNamedAndRemoveUntil(ResultScreen.routeName, (r) => false);
+    } else {
+      // それ以外の場合は、次のステージへ進む
+      setState(() {
+        _currentStage++;
+      });
+    }
+    // --- ▲▲▲ ここまでが変更部分 ▲▲▲ ---
+  }
+
+  void _onRestart() {
+    // ステージ番号をリセットして、再描画をトリガーする
+    setState(() {
+      _currentStage = 0;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: GameWidget(game: _game),
+      body: GameWidget(
+        // ValueKeyに現在のステージ番号を渡すことで、ステージが変わるたびに
+        // GameWidgetが新しいものとして認識され、MyGameが再生成される
+        key: ValueKey(_currentStage),
+        game: MyGame(
+          stage: _currentStage, // MyGameに現在のステージ番号を渡す
+          onExit: _onExit,
+          onStageClear: _onStageClear,
+        ),
+        overlayBuilderMap: {
+          'gameOver': (context, game) {
+            // オーバーレイ部分は変更なし
+            return Center(
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'GAME OVER',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: _onRestart,
+                      child: const Text('リスタート'),
+                    ),
+                    const SizedBox(height: 12),
+                    ElevatedButton(
+                      onPressed: _onExit,
+                      child: const Text('終了'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        },
+      ),
     );
   }
 }
+
