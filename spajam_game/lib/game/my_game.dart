@@ -20,9 +20,14 @@ class MyGame extends FlameGame {
   late int playerIndex;
   late final RectangleComponent screenFlash;
   late final TextComponent timerText;
+  late final TextComponent stageText; // stageTextをクラス変数に
   CatContainer? animatorCat;
 
   // --- 設定値 ---
+  // --- ▼▼▼ 変更点: ステージ表示用のテキストリストを追加 ▼▼▼ ---
+  final List<String> stageDisplayNames = ['壱枚目', '弐枚目', '参枚目', '肆枚目', '伍枚目'];
+  // --- ▲▲▲ 変更点 ▲▲▲ ---
+
   // ステージの目標値を音階のインデックスに変更
   final List<List<int>> stageTargetNoteIndices = [
     [0, 4, 7], // ステージ1: C, E, G (ドミソ)
@@ -113,7 +118,7 @@ class MyGame extends FlameGame {
       position: Vector2(spacing * (playerIndex + 1), size.y / 2),
       size: Vector2(catAreaWidth / (currentTargetValues.length + 1), size.y * 0.9),
       anchor: Anchor.center,
-      paint: Paint()..color = Colors.white.withAlpha(50),
+      paint: Paint()..color = Colors.black.withAlpha(50),
     );
     await add(playerZoneBackground);
 
@@ -147,19 +152,34 @@ class MyGame extends FlameGame {
       text: 'Time: ${gameDuration.toStringAsFixed(1)}',
       position: Vector2(size.x / 2, 20),
       anchor: Anchor.topCenter,
-      textRenderer: TextPaint(style: const TextStyle(color: Colors.white, fontSize: 32)),
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 32,
+          fontFamily: 'YujiBoku',
+        ),
+      ),
       priority: 11,
     );
     await add(timerText);
 
-    final stageText = TextComponent(
-      text: 'Stage: ${_stage + 1}',
+    // --- ▼▼▼ 変更点: ステージテキストの表示内容を変更 ▼▼▼ ---
+    stageText = TextComponent(
+      // _stage番号をインデックスとして使い、リストから対応する文字列を取得
+      text: stageDisplayNames[_stage],
       position: Vector2(20, 20),
       anchor: Anchor.topLeft,
-      textRenderer: TextPaint(style: const TextStyle(color: Colors.white, fontSize: 32)),
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 32,
+          fontFamily: 'YujiBoku',
+        ),
+      ),
       priority: 11,
     );
     await add(stageText);
+    // --- ▲▲▲ 変更点 ▲▲▲ ---
   }
 
   void updatePlayerInput(int index, double value) {
@@ -184,7 +204,7 @@ class MyGame extends FlameGame {
       overlays.add('gameOver');
       return;
     }
-    timerText.text = 'Time: ${remainingTime.toStringAsFixed(1)}';
+    timerText.text = '時: ${remainingTime.toStringAsFixed(1)}';
 
     if (catContainers.isEmpty) return;
 
@@ -241,7 +261,7 @@ class MyGame extends FlameGame {
       text: 'STAGE CLEAR!',
       position: size / 2,
       anchor: Anchor.center,
-      textRenderer: TextPaint(style: const TextStyle(fontSize: 48, color: Colors.yellow)),
+      textRenderer: TextPaint(style: const TextStyle(fontSize: 48, color: Colors.yellow, fontFamily: 'YujiBoku')),
       priority: 12,
     ));
 
